@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日語特訓任務</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif;
+            background-color: #fdf4ff; /* 淺粉色背景 */
+            color: #334155;
+            user-select: none;
+        }
+
+        /* 隱藏捲軸但可滾動 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        ruby {
+            ruby-align: center;
+        }
+        
+        rt {
+            font-size: 0.6em;
+            color: #8b5cf6; /* 紫色拼音，在淺色背景上更清楚 */
+            font-weight: bold;
+        }
+
+        .sentence-box {
+            transition: all 0.3s ease;
+        }
+        
+        .sentence-box:active {
+            transform: scale(0.98);
+        }
+
+        .chinese-translation {
+            display: none;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .show-chinese {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .soft-shadow {
+            box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.15), 0 8px 10px -6px rgba(236, 72, 153, 0.1);
+        }
+
+        .bg-pattern {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #f8fafc;
+        }
+        
+        .choice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex justify-center items-center bg-pattern">
+
+    <!-- 遊戲容器 (改為寬版網頁式) -->
+    <div id="game-container" class="w-full max-w-5xl h-full max-h-[750px] bg-white soft-shadow relative flex flex-col sm:rounded-3xl border border-slate-100 overflow-hidden">
+        
+        <!-- 封面畫面 (無Ruby) -->
+        <div id="screen-title" class="absolute inset-0 flex flex-col justify-center items-center z-50 bg-white">
+            <div class="text-7xl mb-6">🌸</div>
+            <h1 class="text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-violet-500">
+                日語特訓計畫
+            </h1>
+            <h2 class="text-xl mb-12 text-slate-500 tracking-widest font-bold">N3文法 × 實境對話</h2>
+            <div class="bg-pink-50 p-6 rounded-2xl mb-10 max-w-2xl border border-pink-100">
+                <p class="text-sm text-slate-600 text-left leading-loose">
+                    💡 <b>給指導者的話：</b><br>
+                    1. 學生看不懂平假名，請引導她先按「🔊」聽發音。<br>
+                    2. 點擊左側日文句子後，右側會解鎖「N3文法解析」與「對方回應的性別差異」。<br>
+                    3. 可引導學生觀察男生與女生在接話時的語氣不同。
+                </p>
+            </div>
+            <button onclick="startGame()" class="bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-4 px-20 rounded-full text-xl tracking-widest shadow-lg shadow-pink-200 hover:scale-105 transition-transform">
+                開始上課
+            </button>
+        </div>
+
+        <!-- 關卡選擇畫面 (橫向版) -->
+        <div id="screen-map" class="hidden absolute inset-0 flex flex-col p-8 z-40 bg-slate-50">
+            <h2 class="text-3xl font-bold mb-10 text-center text-slate-700 border-b-2 border-pink-200 pb-4">選擇訓練關卡</h2>
+            <div class="flex flex-row gap-6 flex-1 justify-center items-stretch px-10">
+                <button onclick="loadLevel(0)" class="flex-1 bg-white border-2 border-blue-200 p-8 rounded-3xl flex flex-col items-center justify-center gap-6 text-center soft-shadow hover:-translate-y-2 transition-transform">
+                    <span class="text-7xl">⚔️</span>
+                    <div>
+                        <div class="font-bold text-2xl text-blue-600 mb-2">傳說對決戰場</div>
+                        <div class="text-base text-slate-500">5 個實用句型</div>
+                    </div>
+                </button>
+                <button onclick="loadLevel(1)" class="flex-1 bg-white border-2 border-purple-200 p-8 rounded-3xl flex flex-col items-center justify-center gap-6 text-center soft-shadow hover:-translate-y-2 transition-transform">
+                    <span class="text-7xl">🪄</span>
+                    <div>
+                        <div class="font-bold text-2xl text-purple-600 mb-2">異世界轉生</div>
+                        <div class="text-base text-slate-500">5 個實用句型</div>
+                    </div>
+                </button>
+                <button onclick="loadLevel(2)" class="flex-1 bg-white border-2 border-emerald-200 p-8 rounded-3xl flex flex-col items-center justify-center gap-6 text-center soft-shadow hover:-translate-y-2 transition-transform">
+                    <span class="text-7xl">🏫</span>
+                    <div>
+                        <div class="font-bold text-2xl text-emerald-600 mb-2">國中生存法則</div>
+                        <div class="text-base text-slate-500">5 個實用句型</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 遊戲對話畫面 (左右分割版) -->
+        <div id="screen-game" class="hidden absolute inset-0 flex flex-col z-30 bg-slate-50">
+            <!-- 頂部狀態列 -->
+            <div class="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-6 shadow-sm z-10 shrink-0">
+                <button onclick="showMap()" class="text-slate-500 hover:text-pink-500 px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold bg-slate-50 transition-colors">
+                    返回目錄
+                </button>
+                <div id="level-title" class="font-bold text-slate-700 tracking-wider text-lg">關卡名稱</div>
+                <div class="text-sm font-bold text-pink-500 bg-pink-50 px-4 py-2 rounded-full border border-pink-100"><span id="progress-text">1/5</span></div>
+            </div>
+
+            <!-- 內容區 (左右分割) -->
+            <div class="flex-1 flex flex-row overflow-hidden">
+                
+                <!-- 左側：情境與主角對話 -->
+                <div class="w-1/2 p-6 flex flex-col border-r border-slate-200 bg-gradient-to-b from-slate-50 to-slate-100 overflow-y-auto">
+                    <!-- 情境圖 -->
+                    <div class="h-56 bg-white rounded-3xl flex justify-center items-center text-8xl border border-slate-200 mb-6 soft-shadow shrink-0" id="scene-image">
+                        👾
+                    </div>
+                    
+                    <div class="text-center text-sm text-pink-500 font-bold mb-3 animate-bounce">
+                        👇 點擊句子解鎖右方教學 👇
+                    </div>
+
+                    <!-- 日文句子區塊 -->
+                    <div class="bg-white border-l-8 border-pink-400 p-6 rounded-r-3xl soft-shadow flex gap-4 items-start cursor-pointer sentence-box" onclick="toggleTranslation()">
+                        <button onclick="playMainAudio(); event.stopPropagation();" class="mt-1 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-full p-4 flex-shrink-0 transition-colors shadow-sm">
+                            🔊
+                        </button>
+                        <div class="flex-1">
+                            <div id="jp-text" class="text-2xl leading-loose font-bold tracking-wide text-slate-700 mb-2">
+                                <!-- 日文內容由 JS 注入 -->
+                            </div>
+                            <!-- 中文翻譯 -->
+                            <div id="ch-translation" class="chinese-translation pt-3 border-t border-slate-100">
+                                <div class="text-slate-400 font-bold mb-1 text-xs tracking-wider">【中文意思】</div>
+                                <div id="ch-text" class="text-slate-700 font-bold text-lg"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：文法與回應 (初始隱藏，點擊左側後顯示) -->
+                <div class="w-1/2 bg-white flex flex-col">
+                    <!-- 預設遮罩 -->
+                    <div id="right-panel-overlay" class="flex-1 flex flex-col justify-center items-center text-slate-400 bg-slate-50">
+                        <span class="text-5xl mb-4">🔒</span>
+                        <span class="font-bold">點擊左側對話解鎖教學</span>
+                    </div>
+                    
+                    <!-- 教學內容 -->
+                    <div id="right-panel-content" class="hidden flex-1 flex-col p-6 overflow-y-auto gap-6 pb-20 relative">
+                        
+                        <!-- 文法區塊 -->
+                        <div class="bg-violet-50 rounded-2xl p-5 border border-violet-100 soft-shadow">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-2xl">🌟</span>
+                                <h3 class="text-violet-600 font-bold text-lg">N3 文法解析</h3>
+                            </div>
+                            <div id="grammar-note" class="text-slate-700 font-bold text-lg mb-3"></div>
+                            
+                            <div class="bg-white rounded-xl p-3 mb-4 border border-violet-100">
+                                <div class="text-violet-400 font-bold text-xs mb-1">🔗 接續型態</div>
+                                <div id="grammar-connection" class="font-mono text-slate-700 font-bold text-sm"></div>
+                            </div>
+
+                            <div class="text-violet-400 font-bold text-xs mb-2">📝 實用例句</div>
+                            <div id="grammar-examples" class="flex flex-col gap-2">
+                                <!-- 例句由 JS 注入 -->
+                            </div>
+                        </div>
+
+                        <!-- 下一個人接什麼 (學習性別差異) -->
+                        <div class="bg-blue-50 rounded-2xl p-5 border border-blue-100 soft-shadow">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-2xl">🗣️</span>
+                                <h3 class="text-blue-600 font-bold text-lg">通常下個人會接什麼？</h3>
+                                <span class="text-xs text-blue-400 font-bold ml-auto">(學習語氣差異)</span>
+                            </div>
+                            <div id="next-responses" class="flex flex-col gap-3">
+                                <!-- 回應由 JS 注入 -->
+                            </div>
+                        </div>
+
+                        <!-- 下一題按鈕 -->
+                        <button onclick="nextDialogue()" class="mt-4 bg-slate-800 text-white font-bold py-4 px-8 rounded-xl soft-shadow hover:-translate-y-1 transition-transform self-end w-full">
+                            進入下一題 ➡️
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 通關結算畫面 -->
+        <div id="screen-result" class="hidden absolute inset-0 flex flex-col justify-center items-center z-50 bg-white">
+            <div class="text-8xl mb-6">🎉</div>
+            <h2 class="text-3xl font-bold text-pink-500 mb-2">關卡完成！</h2>
+            <p class="text-slate-500 mb-10 font-bold">日語聽力與文法又變強了！</p>
+            <button onclick="showMap()" class="bg-slate-800 text-white font-bold py-4 px-10 rounded-full soft-shadow hover:scale-105 transition-transform">
+                選擇下一個任務
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // 課程資料庫 (15個情境，包含接續型態、例句、與接話的性別差異)
+        const courseData = [
+            {
+                title: "第一關：傳說對決戰場",
+                icon: "⚔️",
+                dialogues: [
+                    {
+                        jp: "「この<ruby>試合<rt>しあい</rt></ruby>、<ruby>勝<rt>か</rt></ruby>ちたくてたまらない！」",
+                        plainJp: "この試合、勝ちたくてたまらない！",
+                        ch: "「這場比賽，我好想贏得不得了！」",
+                        grammar: "～てたまらない (N3)：...得不得了 / 非常...",
+                        connection: "Vて / Aくて / Naで ＋ たまらない",
+                        examples: [
+                            { jp: "ゲームをしたくてたまらない。", ch: "我想打遊戲想得不得了。" },
+                            { jp: "負けて悔しくてたまらない。", ch: "輸了很不甘心。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "わかる！絶対勝とうね！", ch: "懂！我們一定要贏！", plainJp: "わかる！絶対勝とうね！" },
+                            male: { jp: "おう、気合入れろよ！", ch: "喔，打起精神來啊！", plainJp: "おう、気合入れろよ！" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>敵<rt>てき</rt></ruby>のタワー、<ruby>放置<rt>ほうち</rt></ruby>しっぱなしだよ！」",
+                        plainJp: "敵のタワー、放置しっぱなしだよ！",
+                        ch: "「敵方的防禦塔，一直放著沒人管耶！」",
+                        grammar: "～っぱなし (N3)：一直... / 放任...狀態不變",
+                        connection: "Vます形（去掉ます） ＋ っぱなし",
+                        examples: [
+                            { jp: "テレビをつけっぱなしで寝てしまった。", ch: "電視開著就睡著了。" },
+                            { jp: "服を脱ぎっぱなしにしないで。", ch: "衣服不要脫了丟著不管。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "あ、ごめん！すぐ行く！", ch: "啊，抱歉！馬上過去！", plainJp: "あ、ごめん！すぐ行く！" },
+                            male: { jp: "マジか、すぐカバー行くわ！", ch: "真假，我馬上過去支援！", plainJp: "マジか、すぐカバー行くわ！" }
+                        }
+                    },
+                    {
+                        jp: "「あの<ruby>人<rt>ひと</rt></ruby>、<ruby>弱<rt>よわ</rt></ruby>いくせに<ruby>前<rt>まえ</rt></ruby>に<ruby>出<rt>で</rt></ruby>すぎ！」",
+                        plainJp: "あの人、弱いくせに前に出すぎ！",
+                        ch: "「那個人明明很弱，卻衝得太前面了！」",
+                        grammar: "～くせに (N3)：明明...卻... (帶有抱怨、責備語氣)",
+                        connection: "普通形 (Naな / Nの) ＋ くせに",
+                        examples: [
+                            { jp: "知らないくせに、文句を言わないで。", ch: "明明不懂，就不要抱怨。" },
+                            { jp: "男のくせに泣くな。", ch: "明明是男生，別哭啦。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "ほんとそれ！ムカつくよね。", ch: "真的！很氣人耶。", plainJp: "ほんとそれ！ムカつくよね。" },
+                            male: { jp: "ほっとけよ、あんなやつ。", ch: "別管那種傢伙啦。", plainJp: "ほっとけよ、あんなやつ。" }
+                        }
+                    },
+                    {
+                        jp: "「レベルが<ruby>低<rt>ひく</rt></ruby>いわりには、いいダメージ<ruby>出<rt>で</rt></ruby>てるね。」",
+                        plainJp: "レベルが低いわりには、いいダメージ出てるね。",
+                        ch: "「雖然等級很低，但打出的傷害很不錯呢。」",
+                        grammar: "～わりには (N3)：雖然...但是卻... (與預期不符)",
+                        connection: "普通形 (Naな / Nの) ＋ わりには",
+                        examples: [
+                            { jp: "彼はたくさん食べるわりには、太らない。", ch: "他明明吃很多卻不會胖。" },
+                            { jp: "初めてのわりには、よくできたね。", ch: "以第一次來說，做得很好呢。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "だよね！意外とやるじゃん！", ch: "對吧！意外地很厲害嘛！", plainJp: "だよね！意外とやるじゃん！" },
+                            male: { jp: "へえ、やるじゃん。", ch: "喔，不錯嘛。", plainJp: "へえ、やるじゃん。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>君<rt>きみ</rt></ruby>のナイスカバーのおかげで<ruby>助<rt>たす</rt></ruby>かったよ！」",
+                        plainJp: "君のナイスカバーのおかげで助かったよ！",
+                        ch: "「多虧了你完美的掩護，得救了！」",
+                        grammar: "～おかげで (N3)：多虧了... (表示帶來好的結果)",
+                        connection: "普通形 (Naな / Nの) ＋ おかげで",
+                        examples: [
+                            { jp: "先生のおかげで合格できました。", ch: "多虧老師才能及格。" },
+                            { jp: "薬を飲んだおかげで、良くなった。", ch: "多虧吃了藥，好多了。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "ううん、気にしないで！", ch: "不會不會，別在意！", plainJp: "ううん、気にしないで！" },
+                            male: { jp: "おう、気にするな。", ch: "喔，別放在心上。", plainJp: "おう、気にするな。" }
+                        }
+                    }
+                ]
+            },
+            {
+                title: "第二關：異世界轉生",
+                icon: "🪄",
+                dialogues: [
+                    {
+                        jp: "「こんな<ruby>強力<rt>きょうりょく</rt></ruby>な<ruby>魔法<rt>まほう</rt></ruby>、チートに<ruby>決<rt>き</rt></ruby>まっている！」",
+                        plainJp: "こんな強力な魔法、チートに決まっている！",
+                        ch: "「這麼強大的魔法，一定是開外掛啦！」",
+                        grammar: "～に決まっている (N3)：一定是... / 絕對是...",
+                        connection: "普通形 (Na/N 不加だ) ＋ に決まっている",
+                        examples: [
+                            { jp: "あの人が犯人に決まっている。", ch: "那個人一定是犯人。" },
+                            { jp: "努力すれば勝てるに決まっている。", ch: "只要努力就一定會贏。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "だよね！ずるい！", ch: "對吧！太狡猾了！", plainJp: "だよね！ずるい！" },
+                            male: { jp: "だよな！絶対おかしい。", ch: "對吧！絕對有問題。", plainJp: "だよな！絶対おかしい。" }
+                        }
+                    },
+                    {
+                        jp: "「これは<ruby>買<rt>か</rt></ruby>ったばかりの、いや、<ruby>鍛<rt>きた</rt></ruby>え<ruby>立<rt>た</rt></ruby>ての<ruby>伝説<rt>でんせつ</rt></ruby>の<ruby>剣<rt>けん</rt></ruby>だ！」",
+                        plainJp: "これは買ったばかりの、いや、鍛え立ての伝説の剣だ！",
+                        ch: "「這是剛買的，不，是剛鍛造好的傳說之劍！」",
+                        grammar: "～たて (N3)：剛剛做好...的狀態",
+                        connection: "Vます形（去掉ます） ＋ たて",
+                        examples: [
+                            { jp: "焼きたてのパンはおいしい。", ch: "剛烤好的麵包很好吃。" },
+                            { jp: "ペンキ塗りたてだから、触らないで。", ch: "油漆剛刷好，請不要碰。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "わあ、すごーい！見せて！", ch: "哇，好厲害！借我看！", plainJp: "わあ、すごーい！見せて！" },
+                            male: { jp: "おっ、いいじゃん。", ch: "喔，不錯嘛。", plainJp: "おっ、いいじゃん。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>弱<rt>よわ</rt></ruby>いふりをして、<ruby>実<rt>じつ</rt></ruby>は<ruby>魔王軍<rt>まおうぐん</rt></ruby>の<ruby>幹部<rt>かんぶ</rt></ruby>なんだろう？」",
+                        plainJp: "弱いふりをして、実は魔王軍の幹部なんだろう？",
+                        ch: "「你裝作很弱的樣子，其實是魔王軍的幹部吧？」",
+                        grammar: "～ふりをする (N3)：裝作...的樣子",
+                        connection: "普通形 (Naな / Nの) ＋ ふりをする",
+                        examples: [
+                            { jp: "寝たふりをして、話を聞いていた。", ch: "裝睡偷聽說話。" },
+                            { jp: "分からないふりをする。", ch: "裝作不懂的樣子。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "えっ、ウソ！？信じられない！", ch: "欸，騙人！？真不敢相信！", plainJp: "えっ、ウソ！？信じられない！" },
+                            male: { jp: "やっぱりな。怪しいと思ってた。", ch: "果然。我就覺得可疑。", plainJp: "やっぱりな。怪しいと思ってた。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>油断<rt>ゆだん</rt></ruby>したばかりに、<ruby>罠<rt>わな</rt></ruby>にかかってしまった...」",
+                        plainJp: "油断したばかりに、罠にかかってしまった...",
+                        ch: "「就因為一時大意，結果中了陷阱...」",
+                        grammar: "～ばかりに (N3)：就只是因為... (導致了壞的結果)",
+                        connection: "普通形 (Naな / Nである) ＋ ばかりに",
+                        examples: [
+                            { jp: "お金がないばかりに、大学を諦めた。", ch: "就因為沒有錢，放棄了上大學。" },
+                            { jp: "一言文句を言ったばかりに、喧嘩になった。", ch: "就因為抱怨了一句，結果吵架了。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "大丈夫？助けてあげる！", ch: "沒事吧？我來幫你！", plainJp: "大丈夫？助けてあげる！" },
+                            male: { jp: "どんまい。次は気をつけろよ。", ch: "別在意。下次小心點。", plainJp: "どんまい。次は気をつけろよ。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>選択<rt>せんたく</rt></ruby>によって、<ruby>未来<rt>みらい</rt></ruby>のルートが<ruby>変<rt>か</rt></ruby>わるぞ。」",
+                        plainJp: "選択によって、未来のルートが変わるぞ。",
+                        ch: "「根據選擇的不同，未來的路線也會改變喔。」",
+                        grammar: "～によって (N3)：根據...而有所不同 / 由...所決定",
+                        connection: "N ＋ によって",
+                        examples: [
+                            { jp: "人によって考え方が違う。", ch: "每個人的想法都不同。" },
+                            { jp: "天気によって予定が変わる。", ch: "計畫會因為天氣而改變。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "どうしよう、迷っちゃうな。", ch: "怎麼辦，好猶豫喔。", plainJp: "どうしよう、迷っちゃうな。" },
+                            male: { jp: "よし、こっちの道にしようぜ。", ch: "好，就走這條路吧。", plainJp: "よし、こっちの道にしようぜ。" }
+                        }
+                    }
+                ]
+            },
+            {
+                title: "第三關：國中生存法則",
+                icon: "🏫",
+                dialogues: [
+                    {
+                        jp: "「<ruby>中学生<rt>ちゅうがくせい</rt></ruby>になったら、もっと<ruby>勉強<rt>べんきょう</rt></ruby>するべきだと<ruby>言<rt>い</rt></ruby>われた。」",
+                        plainJp: "中学生になったら、もっと勉強するべきだと言われた。",
+                        ch: "「有人跟我說，上了國中之後應該要更認真讀書。」",
+                        grammar: "～べきだ (N3)：應該... (社會常理或理所當然的事)",
+                        connection: "V辞書形 ＋ べきだ (する變成すべきだ)",
+                        examples: [
+                            { jp: "約束は守るべきだ。", ch: "應該遵守約定。" },
+                            { jp: "学生はもっと勉強すべきだ。", ch: "學生應該多讀點書。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "うん、一緒に頑張ろうね！", ch: "嗯，一起加油吧！", plainJp: "うん、一緒に頑張ろうね！" },
+                            male: { jp: "まあ、適当にやるわ。", ch: "嘛，隨便弄弄啦。", plainJp: "まあ、適当にやるわ。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>先輩<rt>せんぱい</rt></ruby>たち、なんか<ruby>怖<rt>こわ</rt></ruby>いような<ruby>気<rt>き</rt></ruby>がする...」",
+                        plainJp: "先輩たち、なんか怖いような気がする...",
+                        ch: "「學長姐們，總覺得好像有點可怕...」",
+                        grammar: "～ような気がする (N3)：總覺得... / 感覺好像...",
+                        connection: "普通形 (Naな / Nの) ＋ ような気がする",
+                        examples: [
+                            { jp: "誰かに見られているような気がする。", ch: "總覺得好像有人在看我。" },
+                            { jp: "この本、前に読んだような気がする。", ch: "這本書，我總覺得以前好像讀過。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "私もそう思う！気をつけて！", ch: "我也這麼覺得！小心點喔！", plainJp: "私もそう思う！気をつけて！" },
+                            male: { jp: "考えすぎだろ。", ch: "你想太多了吧。", plainJp: "考えすぎだろ。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>最近<rt>さいきん</rt></ruby>、<ruby>授業中<rt>じゅぎょうちゅう</rt></ruby>に<ruby>寝落<rt>ねお</rt></ruby>ちしがちだよ。」",
+                        plainJp: "最近、授業中に寝落ちしがちだよ。",
+                        ch: "「最近上課時往往不小心睡著呢。」",
+                        grammar: "～がち (N3)：容易... / 常常... (多用於負面)",
+                        connection: "Vます形（去掉ます）/ N ＋ がち",
+                        examples: [
+                            { jp: "彼は最近、学校を休みがちだ。", ch: "他最近常常請假沒來學校。" },
+                            { jp: "冬は風邪をひきがちだ。", ch: "冬天容易感冒。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "わかるー。眠くなっちゃうよね。", ch: "懂——。真的會很想睡耶。", plainJp: "わかるー。眠くなっちゃうよね。" },
+                            male: { jp: "ちゃんと顔洗ってこいよ。", ch: "去洗個臉啦。", plainJp: "ちゃんと顔洗ってこいよ。" }
+                        }
+                    },
+                    {
+                        jp: "「<ruby>明日<rt>あした</rt></ruby>は<ruby>期末<rt>きまつ</rt></ruby>テストだ。<ruby>遊<rt>あそ</rt></ruby>んでいるわけにはいかない。」",
+                        plainJp: "明日は期末テストだ。遊んでいるわけにはいかない。",
+                        ch: "「明天就是期末考了。總不能還在玩吧。」",
+                        grammar: "～わけにはいかない (N3)：不能... (基於責任或社會常識)",
+                        connection: "V辞書形 / Vない形 ＋ わけにはいかない",
+                        examples: [
+                            { jp: "明日はテストだから、休むわけにはいかない。", ch: "明天要考試，不能請假。" },
+                            { jp: "社長の命令だから、断るわけにはいかない。", ch: "因為是老闆的命令，總不能拒絕。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "えー、残念。また今度ね！", ch: "欸——好可惜。下次再約囉！", plainJp: "えー、残念。また今度ね！" },
+                            male: { jp: "そっか。じゃあ頑張れよ。", ch: "這樣啊。那加油啦。", plainJp: "そっか。じゃあ頑張れよ。" }
+                        }
+                    },
+                    {
+                        jp: "「うちの<ruby>学校<rt>がっこう</rt></ruby>、スマホは<ruby>持<rt>も</rt></ruby>ち<ruby>込<rt>こ</rt></ruby>み<ruby>禁止<rt>きんし</rt></ruby>ということになっている。」",
+                        plainJp: "うちの学校、スマホは持ち込み禁止ということになっている。",
+                        ch: "「我們學校規定不能帶智慧型手機。」",
+                        grammar: "～ことになっている (N3)：規定... / 約定好了...",
+                        connection: "V辞書形 / Vない形 / Nという ＋ ことになっている",
+                        examples: [
+                            { jp: "教室では日本語しか話せないことになっている。", ch: "規定在教室裡只能說日文。" },
+                            { jp: "明日、友達と映画を見に行くことになっている。", ch: "我和朋友約好明天要去看電影。" }
+                        ],
+                        nextResponses: {
+                            female: { jp: "えー、厳しいね。見つからないようにね。", ch: "欸——好嚴格喔。別被發現了唷。", plainJp: "えー、厳しいね。見つからないようにね。" },
+                            male: { jp: "マジか、だるいな。", ch: "真假，好煩喔。", plainJp: "マジか、だるいな。" }
+                        }
+                    }
+                ]
+            }
+        ];
+
+        let currentLevel = 0;
+        let currentDialogueIndex = 0;
+        let synth = window.speechSynthesis;
+
+        function hideAllScreens() {
+            document.getElementById('screen-title').classList.add('hidden');
+            document.getElementById('screen-map').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-result').classList.add('hidden');
+        }
+
+        function startGame() {
+            hideAllScreens();
+            document.getElementById('screen-map').classList.remove('hidden');
+        }
+
+        function showMap() {
+            if(synth.speaking) synth.cancel();
+            hideAllScreens();
+            document.getElementById('screen-map').classList.remove('hidden');
+        }
+
+        function loadLevel(levelIndex) {
+            currentLevel = levelIndex;
+            currentDialogueIndex = 0;
+            const levelData = courseData[currentLevel];
+            
+            document.getElementById('level-title').innerText = levelData.title;
+            document.getElementById('scene-image').innerText = levelData.icon;
+            
+            hideAllScreens();
+            document.getElementById('screen-game').classList.remove('hidden');
+            
+            showDialogue();
+        }
+
+        function showDialogue() {
+            // 重置：隱藏中文翻譯與右側教學面板
+            document.getElementById('ch-translation').classList.remove('show-chinese');
+            document.getElementById('right-panel-overlay').classList.remove('hidden');
+            
+            const rightContent = document.getElementById('right-panel-content');
+            rightContent.classList.add('hidden');
+            rightContent.classList.remove('flex');
+            
+            const levelData = courseData[currentLevel];
+            const dialogue = levelData.dialogues[currentDialogueIndex];
+            
+            document.getElementById('progress-text').innerText = `${currentDialogueIndex + 1}/${levelData.dialogues.length}`;
+            
+            // 左側句子與中文
+            document.getElementById('jp-text').innerHTML = dialogue.jp;
+            document.getElementById('ch-text').innerText = dialogue.ch;
+            
+            // 右側文法解析
+            document.getElementById('grammar-note').innerText = dialogue.grammar;
+            document.getElementById('grammar-connection').innerText = dialogue.connection;
+            
+            // 右側例句渲染
+            const examplesContainer = document.getElementById('grammar-examples');
+            examplesContainer.innerHTML = '';
+            dialogue.examples.forEach(ex => {
+                examplesContainer.innerHTML += `
+                    <div class="bg-white/70 p-3 rounded-lg border border-violet-100 mb-1">
+                        <div class="font-bold text-slate-700 text-sm mb-1">${ex.jp}</div>
+                        <div class="text-slate-500 text-sm">${ex.ch}</div>
+                    </div>
+                `;
+            });
+            
+            // 右側性別回應差異渲染
+            const responsesContainer = document.getElementById('next-responses');
+            responsesContainer.innerHTML = '';
+            
+            const genders = [
+                { key: 'female', label: '🌸 女生接話', style: 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100', pitch: 1.2 },
+                { key: 'male', label: '👦 男生接話', style: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100', pitch: 0.8 }
+            ];
+
+            genders.forEach(g => {
+                const res = dialogue.nextResponses[g.key];
+                responsesContainer.innerHTML += `
+                    <div class="border-2 rounded-xl p-3 flex items-center justify-between transition-colors ${g.style}">
+                        <div class="flex-1 pr-3">
+                            <div class="text-xs font-bold opacity-70 mb-1">${g.label}</div>
+                            <div class="text-base font-bold mb-1">${res.jp}</div>
+                            <div class="text-sm opacity-80">${res.ch}</div>
+                        </div>
+                        <button onclick="playResponseAudio('${res.plainJp}', ${g.pitch})" class="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:scale-110 transition-transform shrink-0">
+                            🔊
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        // 點擊左側對話，顯示中文與右側教學面板
+        function toggleTranslation() {
+            document.getElementById('ch-translation').classList.add('show-chinese');
+            
+            document.getElementById('right-panel-overlay').classList.add('hidden');
+            
+            const rightContent = document.getElementById('right-panel-content');
+            rightContent.classList.remove('hidden');
+            rightContent.classList.add('flex');
+        }
+
+        function playMainAudio() {
+            if (!synth) return;
+            if (synth.speaking) synth.cancel();
+
+            const dialogue = courseData[currentLevel].dialogues[currentDialogueIndex];
+            const utterThis = new SpeechSynthesisUtterance(dialogue.plainJp);
+            utterThis.lang = 'ja-JP';
+            utterThis.rate = 0.85; 
+            utterThis.pitch = 1.1; 
+            synth.speak(utterThis);
+        }
+
+        function playResponseAudio(text, pitchValue) {
+            if (!synth) return;
+            if (synth.speaking) synth.cancel();
+
+            const utterThis = new SpeechSynthesisUtterance(text);
+            utterThis.lang = 'ja-JP';
+            utterThis.rate = 0.85; 
+            utterThis.pitch = pitchValue; 
+            synth.speak(utterThis);
+        }
+
+        function nextDialogue() {
+            if(synth.speaking) synth.cancel();
+
+            const levelData = courseData[currentLevel];
+            currentDialogueIndex++;
+            
+            if (currentDialogueIndex >= levelData.dialogues.length) {
+                hideAllScreens();
+                document.getElementById('screen-result').classList.remove('hidden');
+            } else {
+                showDialogue();
+            }
+        }
+    </script>
+</body>
+</html>
